@@ -21,6 +21,9 @@ COLOR_YELLOW = (253, 209, 41)
 COLOR_DEFAULT = (50, 50, 50)
 COLOR_MM = (130, 130, 130)
 
+FONT_DIR = "font"
+FONT_NAME = "KiwiMaru-Regular.ttf"
+
 # --- マップ設計図 ---
 STAGE_DATA = {
     1: [
@@ -247,7 +250,7 @@ class InfoSign(pygame.sprite.Sprite):
         # システムフォント(SysFont)ではなく、ファイルから読み込む(Font)
         try:
             # フォルダを分けているなら "fonts/ZenMaruGothic-Regular.ttf" のように指定
-            self.font = pygame.font.Font("KiwiMaru-Regular.ttf", 16)
+            self.font = pygame.font.Font(FONT_PATH, 18)
         except:
             # 万が一ファイルが見つからない時のためのバックアップ
             self.font = pygame.font.SysFont("msgothic", 16)
