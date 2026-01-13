@@ -251,7 +251,7 @@ class InfoSign(pygame.sprite.Sprite):
         # システムフォント(SysFont)ではなく、ファイルから読み込む(Font)
         try:
             # フォルダを分けているなら "fonts/ZenMaruGothic-Regular.ttf" のように指定
-            self.font = pygame.font.Font(FONT_PATH, 18)
+            self.font = pygame.font.Font(FONT_NAME, 18)
         except:
             # 万が一ファイルが見つからない時のためのバックアップ
             self.font = pygame.font.SysFont("msgothic", 16)
@@ -926,4 +926,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
