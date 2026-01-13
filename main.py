@@ -23,7 +23,7 @@ COLOR_DEFAULT = (50, 50, 50)
 COLOR_MM = (130, 130, 130)
 
 FONT_DIR = "font"
-FONT_NAME = "KiwiMaru-Regular.ttf"
+FONT_NAME = "font/KiwiMaru-Regular.ttf"
 
 # --- マップ設計図 ---
 STAGE_DATA = {
