@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+# font/KiwiMaru-Regular.ttf
 import pygame
 import sys
 import math
@@ -926,3 +927,4 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
