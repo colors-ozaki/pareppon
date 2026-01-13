@@ -640,6 +640,7 @@ async def main():
         cam_y = max(0, min(player.rect.centery - HEIGHT // 2, STAGE_HEIGHT - HEIGHT))
 
         events = pygame.event.get()
+        keys = pygame.key.get_pressed() # 1. キーの「状態」を毎フレーム取得
 
         # --- main関数内のイベントループ内 ---
         for e in events:
@@ -745,18 +746,6 @@ async def main():
                                     del inventory[target_key]
                                     selected_item_index = -1
 
-                # 2. キーボード操作
-                if e.type == pygame.KEYDOWN:
-                    # Rキーでリセット
-                    if e.key == pygame.K_r:
-                        current_goal = setup_stage(current_stage, all_sprites, platforms, items_group, buttons_group, changers_group, spikes_group, player, inventory, moving_platforms, springs_group, goal_group, info_signs_group)
-                    # SPACEキーでジャンプ
-                    if e.key == pygame.K_SPACE:
-                        player.jump(particles_group)
-                    # ESCキーでセレクト画面に戻る
-                    if e.key == pygame.K_ESCAPE:
-                        game_state = "SELECT"
-
         if game_state == "TITLE":
             screen.blit(title_bg, (0, 0))
             logo_x = (WIDTH - title_logo.get_width()) // 2
@@ -796,6 +785,13 @@ async def main():
                     death_timer = 0
             elif clear_timer == 0:
                 player.update(platforms, particles_group)
+
+                if keys[pygame.K_SPACE]: # スペースキーが「今」押されていれば即実行
+                    player.jump(particles_group)
+                if keys[pygame.K_r]:
+                    current_goal = setup_stage(current_stage, all_sprites, platforms, items_group, buttons_group, changers_group, spikes_group, player, inventory, moving_platforms, springs_group, goal_group, info_signs_group)
+                if keys[pygame.K_ESCAPE]:
+                    game_state = "SELECT"
                 
                 # アイテム拾得
                 picked = pygame.sprite.spritecollide(player, items_group, True)
@@ -927,4 +923,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
