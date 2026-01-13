@@ -27,26 +27,26 @@ STAGE_DATA = {
         "#..................................................#",
         "#..................................................#",
         "#..................................................#",
-        "#.P...1..S.......2III...###...r....................#",
+        "#.P...1..S.......2I.....###...r....................#",
         "####################....####..b..+Y-...............#",
-        "#.##################....#####.y..+Y-...............#",
-        "#.###################################............rr#",
-        "#...................................#............bb#",
-        "#...................................##...........yy#",
-        "#...................................##.............#",
-        "#...................................###VV#EE#OO#####",
-        "#...................................#..............#",
-        "#...................................#..............#",
-        "#...................................#..............#",
-        "##########################......######.............#",
-        "##########################......#....##7A.........A#",
-        "##########################......#....######XXX######",
-        "##########################......#.B...#####...######",
-        "##########################......####..#####...######",
-        "##########################.........##..............#",
-        "##########################..........#..............#",
-        "##########################..........#..............#",
-        "##########################..........#J.7....G..8...#",
+        "####################....#####.y4.+Y-...............#",
+        "#####################################............rr#",
+        "#####################################............bb#",
+        "######################################...........yy#",
+        "######################################..........6..#",
+        "#######################################VV#EE#OO#####",
+        "#####################################..............#",
+        "#####################################..............#",
+        "#####################################..............#",
+        "######################################.............#",
+        "#################################....##3A.........A#",
+        "#################################....######XXX######",
+        "#################################.B...#####...######",
+        "####################################...####...######",
+        "#####################################..............#",
+        "#####################################..............#",
+        "#####################################..............#",
+        "#####################################J.8....G.....#",
         "####################################################"
     ],
     2: [
@@ -106,15 +106,7 @@ class Player(pygame.sprite.Sprite):
             self.vel_x = 0
             
         self.vel_y += self.gravity
-        
-        # アニメーション用（ぷるぷる）
-        if self.vel_x == 0 and self.on_ground and abs(self.squish_vel) < 0.005:
-            self.squish = math.sin(pygame.time.get_ticks() / 200) * 0.04 
-        else:
-            self.target_squish = -0.05 if self.vel_x != 0 else 0.0
-            self.squish_vel += (self.target_squish - self.squish) * self.spring_k
-            self.squish_vel *= self.friction
-            self.squish += self.squish_vel
+    
 
         self.rect.x += self.vel_x; self.check_collision(platforms, 'x')
         self.rect.y += self.vel_y; self.check_collision(platforms, 'y')
@@ -162,23 +154,16 @@ class Player(pygame.sprite.Sprite):
         base_x, base_y = self.rect.centerx - camera_x, self.rect.bottom - camera_y
         fixed_scale = self.base_radius * 2.5
         face_tilt = self.vel_x * 1.5
-        temp_surface = pygame.Surface((w * 1.5, h * 1.5), pygame.SRCALPHA)
-        center_x, bottom_y = w * 0.75, h * 1.2
+        # 直接 surface に polygon を描く（Surface作成を省く）
+        res = 24
+        points = []
+        for j in range(res):
+            angle = (j / res) * math.pi * 2
+            px, py = math.cos(angle) * (w / 2), math.sin(angle) * (h / 2)
+            if py > 0: py *= 0.2
+            points.append((base_x + px, base_y + py - (h * 0.1)))
         
-        layers = 3
-        for i in range(layers):
-            ratio = 1.0 - (i * 0.15); alpha = 160 + (i * 30)
-            color = list(self.current_color)
-            for c in range(3): color[c] = min(255, color[c] + (i * 20))
-            points = []
-            res = 24
-            for j in range(res):
-                angle = (j / res) * math.pi * 2
-                px, py = math.cos(angle) * (curr_w := w * ratio / 2), math.sin(angle) * (curr_h := h * ratio / 2)
-                if py > 0: py *= 0.2
-                points.append((center_x + px, bottom_y + py - (curr_h * 0.2)))
-            pygame.draw.polygon(temp_surface, (*color, alpha), points)
-        surface.blit(temp_surface, (base_x - center_x, base_y - bottom_y))
+        pygame.draw.polygon(surface, self.current_color, points)
         
         # 目と頬
         pink_color = (255, 180, 190, 200)
@@ -249,85 +234,46 @@ class BreakableBlock(Platform):
 class InfoSign(pygame.sprite.Sprite):
     def __init__(self, x, y, message, player_ref):
         super().__init__()
-
         try:
             self.image = pygame.image.load("img/infosign.png").convert_alpha()
-            # 1マス分(GRID_SIZE)にサイズを調整する場合
             self.image = pygame.transform.scale(self.image, (GRID_SIZE, GRID_SIZE))
         except:
-
-            # 画像の設定などはそのまま
-            self.image = pygame.Surface((GRID_SIZE, GRID_SIZE)); self.image.fill((100, 70, 0)) 
+            self.image = pygame.Surface((GRID_SIZE, GRID_SIZE))
+            self.image.fill((100, 70, 0)) 
         self.rect = self.image.get_rect(topleft=(x, y))
         
-        self.full_message = message     # 全文
-        self.display_message = ""       # 今画面に出ている途中経過の文字
+        self.full_message = message
         self.player = player_ref
-        
-        # 日本語フォント設定
-        self.font = pygame.font.SysFont("msgothic", 14)
-        
+        self.font = pygame.font.SysFont("msgothic", 16)
         self.is_showing_message = False
-        self.char_index = 0             # 今何文字目か
-        self.type_speed = 3          # 文字が出る速度（小さいほど早い）
-        self.timer = 5                  # 速度調整用タイマー
-        self.wrap_count = 6  # ★何文字で改行するか
+        
+        # --- 修正: 看板用の画像をあらかじめ生成しておく ---
+        lines = [message[i:i + 6] for i in range(0, len(message), 6)]
+        line_surfs = [self.font.render(l, True, WHITE) for l in lines]
+        max_w = max(s.get_width() for s in line_surfs)
+        total_h = sum(s.get_height() for s in line_surfs) + (len(lines)-1)*4
+        
+        self.text_bg_surf = pygame.Surface((max_w + 16, total_h + 12), pygame.SRCALPHA)
+        pygame.draw.rect(self.text_bg_surf, (30, 30, 30, 220), self.text_bg_surf.get_rect(), border_radius=5)
+        pygame.draw.rect(self.text_bg_surf, WHITE, self.text_bg_surf.get_rect(), 1, border_radius=5)
+        
+        curr_y = 6
+        for s in line_surfs:
+            self.text_bg_surf.blit(s, ( (max_w+16)//2 - s.get_width()//2, curr_y))
+            curr_y += s.get_height() + 4
 
     def update(self, *args):
-        distance = ((self.rect.centerx - self.player.rect.centerx)**2 + 
-                    (self.rect.centery - self.player.rect.centery)**2)**0.5
-        
-        if distance < 100:
-            self.is_showing_message = True
-            # カタカタ演出の進行
-            if self.char_index < len(self.full_message):
-                self.timer += 1
-                if self.timer >= 20: # ここの数字を大きくすると遅くなる
-                    self.char_index += 1
-                    self.display_message = self.full_message[:self.char_index]
-                    self.timer = 0
-                    # ここで「ピコッ」と短い音を鳴らすとさらに最高です！
-        else:
-            self.is_showing_message = False
-            # 離れたらリセット（次に近づいた時にまたカタカタさせる）
-            self.char_index = 0
-            self.display_message = ""
+        # 距離判定のみ
+        dist = math.hypot(self.rect.centerx - self.player.rect.centerx, 
+                          self.rect.centery - self.player.rect.centery)
+        self.is_showing_message = (dist < 100)
 
     def draw(self, screen, cam_x, cam_y):
-        if self.is_showing_message and self.char_index > 0:
-            # 現在表示すべき文字を切り出す
-            current_text = self.full_message[:self.char_index]
+        if self.is_showing_message:
+            # 作成済みの画像を1回blitするだけなので超高速！
+            pos = self.text_bg_surf.get_rect(midbottom=(self.rect.centerx - cam_x, self.rect.top - cam_y - 10))
+            screen.blit(self.text_bg_surf, pos)
             
-            # ★ 7文字ごとに改行を入れたリストを作る
-            lines = []
-            for i in range(0, len(current_text), self.wrap_count):
-                lines.append(current_text[i:i + self.wrap_count])
-            
-            # 各行のSurfaceを作成
-            line_surfaces = [self.font.render(line, True, (255, 255, 255)) for line in lines]
-            
-            # 全体の幅と高さを計算
-            max_w = max([s.get_width() for s in line_surfaces])
-            total_h = sum([s.get_height() for s in line_surfaces]) + (len(lines)-1)*4
-            
-            # 背景の描画（看板の真上）
-            target_x = self.rect.centerx - cam_x
-            target_y = self.rect.top - cam_y
-            
-            # 背景の矩形（少し余裕を持たせる）
-            bg_rect = pygame.Rect(0, 0, max_w + 16, total_h + 12)
-            bg_rect.midbottom = (target_x, target_y - 10)
-            
-            pygame.draw.rect(screen, (30, 30, 30), bg_rect, border_radius=5)
-            pygame.draw.rect(screen, (255, 255, 255), bg_rect, 1, border_radius=5)
-            
-            # 1行ずつ描画
-            current_y = bg_rect.top + 6
-            for s in line_surfaces:
-                # 行ごとに中央揃え
-                line_x = bg_rect.centerx - s.get_width() // 2
-                screen.blit(s, (line_x, current_y))
-                current_y += s.get_height() + 4
 # --- アイテムシステム（インベントリ用） ---
 class Collectible(pygame.sprite.Sprite):
     def __init__(self, x, y, item_type):
@@ -562,7 +508,7 @@ class ClearParticle(pygame.sprite.Sprite):
 # --- システム関数 ---
 def setup_stage(stage_num, all_sprites, platforms, items_group, buttons_group, changers_group, spikes_group, player, inventory, moving_platforms, springs_group, goal_group, info_signs_group):
     all_sprites.empty(); platforms.empty(); items_group.empty(); buttons_group.empty(); moving_platforms.empty()
-    changers_group.empty(); spikes_group.empty(); springs_group.empty(); goal_group.empty(); inventory = {}; info_signs_group.empty()
+    changers_group.empty(); spikes_group.empty(); springs_group.empty(); goal_group.empty(); inventory.clear(); info_signs_group.empty()
     player.is_alive = True; player.vel_x = 0; player.vel_y = 0
     if stage_num not in STAGE_DATA: return None
     
@@ -965,7 +911,7 @@ async def main():
                     pygame.draw.circle(screen, (255, 255, 0), (m_pos[0], m_pos[1]), 20, 2)
 
         pygame.display.flip()
-        await asyncio.sleep(0)
+        await asyncio.sleep(0) 
         clock.tick(FPS)
 
 if __name__ == "__main__":
