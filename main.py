@@ -244,7 +244,13 @@ class InfoSign(pygame.sprite.Sprite):
         
         self.full_message = message
         self.player = player_ref
-        self.font = pygame.font.SysFont("msgothic", 16)
+        # システムフォント(SysFont)ではなく、ファイルから読み込む(Font)
+        try:
+            # フォルダを分けているなら "fonts/ZenMaruGothic-Regular.ttf" のように指定
+            self.font = pygame.font.Font("KiwiMaru-Regular.ttf", 16)
+        except:
+            # 万が一ファイルが見つからない時のためのバックアップ
+            self.font = pygame.font.SysFont("msgothic", 16)
         self.is_showing_message = False
         
         # --- 修正: 看板用の画像をあらかじめ生成しておく ---
